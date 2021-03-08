@@ -51,6 +51,7 @@ func Start(url string) {
 	if err2 != nil {
 		log.Fatal(err2)
 	}
+	defer resp.Body.Close()
 	doc, err3 := goquery.NewDocumentFromReader(resp.Body)
 	if err3 != nil {
 		log.Fatal(err3)
@@ -75,6 +76,7 @@ func working(v Page, ch chan string) {
 	httpParams(req)
 	resp, _ := client.Do(req)
 	doc, _ := goquery.NewDocumentFromReader(resp.Body)
+	defer resp.Body.Close()
 	doc.Find(".grid_view li").Each(func(i int, s *goquery.Selection) {
 		title := s.Find(".hd a .title").Eq(0).Text()
 		desc := strings.TrimSpace(s.Find(".bd p").Eq(0).Text())
