@@ -2,38 +2,86 @@ package parse
 
 import (
 	"fmt"
+	"go-creeper/zhenai/model"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-//City 城市struct
-type City struct {
-	Name string
-	URL  string
-}
-
-func httpParams(req *http.Request) {
-	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+func requestFn(url string) (resp *http.Response, err error) {
+	client := http.Client{}
+	req, err1 := http.NewRequest("GET", url, nil)
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36")
-	req.Header.Add("cookie", `sid=69d048d4-e6f2-4858-8c8f-2ec420c54f11; __channelId=900122%2C0; ec=q5JKvSet-1614577173010-9ceed1be893c9-1416558426; Hm_lvt_2c8ad67df9e787ad29dbd54ee608f5d2=1614578218; _efmdata=Jt2FeBjL1DZpWU3T3h%2FMN4q0bdOkuzQSPGJmIteK9NgPcnNuKrNV%2BRj0roG%2FUPQ3heY1eDG8iQqqIaIZIkFGs2zXCsqissKYbKKdhyghRyA%3D; _exid=KdJTQZhW%2BJSDEuUSiJpRac%2BQjS71Cf%2B2UXvhqgfRWwiaZoEWgdm4xSyL9PLBnUIgmqh02m9o%2FXSpYLog1tfFLg%3D%3D; Hm_lpvt_2c8ad67df9e787ad29dbd54ee608f5d2=1615174515`)
+	if err1 != nil {
+		err = err1
+		return
+	}
+	resp, err = client.Do(req)
+	if err != nil {
+		return
+	}
+	return
 }
 
 //Start 1. 获取所有的城市url
 func Start() {
-	citys := []City{}
-	client := http.Client{}
-	req, _ := http.NewRequest("GET", "https://www.zhenai.com/zhenghun", nil)
-	httpParams(req)
-	resp, _ := client.Do(req)
+	resp, err := requestFn("https://www.zhenai.com/zhenghun")
+	if err != nil {
+		log.Fatal(err)
+	}
+	citys := []model.City{}
 	doc, _ := goquery.NewDocumentFromReader(resp.Body)
 	defer resp.Body.Close()
 	doc.Find(".city-list dd").Each(func(i int, s *goquery.Selection) {
 		s.Find("a").Each(func(i int, a *goquery.Selection) {
 			name := a.Text()
 			url, _ := a.Attr("href")
-			citys = append(citys, City{Name: name, URL: url})
+			citys = append(citys, model.City{Name: name, URL: url})
 		})
 	})
-	fmt.Println(citys)
+	cityData(citys)
+}
+
+//2. 获取每个城市下的列表
+func cityData(citys []model.City) {
+	persons := []model.Person{}
+	for _, v := range citys {
+		resp, err := requestFn(v.URL)
+		if err != nil {
+			log.Fatal(err)
+			continue
+		}
+		doc, _ := goquery.NewDocumentFromReader(resp.Body)
+		fmt.Println(doc)
+		doc.Find(".g-list .list-item").Each(func(i int, s *goquery.Selection) {
+			name := s.Find(".content tbody").Eq(0).Find("a").Text()
+			city := v.Name
+			imports := s.Find(".content tbody tr").Eq(2).Find("td").Eq(1).Text()
+			importsArr := strings.Split(imports, "：")
+			var salary string
+			var education string
+			if importsArr[0] == "学历" {
+				salary = ""
+				education = importsArr[1]
+			} else {
+				salary = importsArr[1]
+				education = ""
+			}
+			persons = append(persons, model.Person{
+				Name:      name,
+				City:      city,
+				Salary:    salary,
+				Education: education,
+				Age:       0,
+				Height:    0,
+				Introduce: "",
+				Cover:     "",
+			})
+		})
+		panic(1111)
+
+	}
+
 }
