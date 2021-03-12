@@ -8,12 +8,12 @@ type City struct {
 
 //Person 个人信息
 type Person struct {
-	Name      string
-	City      string
-	Salary    string
-	Education string
-	Age       int
-	Height    int
-	Introduce string
-	Cover     string
+	Name      string `json:"name"`
+	City      string `json:"city"`
+	Salary    string `json:"salary"`
+	Education string `json:"education"`
+	Age       int    `json:"age"`
+	Height    int    `json:"height"`
+	Introduce string `json:"introduce"`
+	Cover     string `json:"cover"`
 }
